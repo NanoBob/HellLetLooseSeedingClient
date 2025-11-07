@@ -25,7 +25,7 @@ builder.Configuration
 #if RELEASE
 if (!StartupProcessHelper.IsAutostartSetUp())
 {
-    StartupProcessHelper.SetupAutostart();
+    await StartupProcessHelper.SetupAutostartAsync();
 }
 #endif
 
