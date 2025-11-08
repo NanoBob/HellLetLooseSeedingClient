@@ -33,7 +33,7 @@ In order to stop using this:
   In order to bypass this, click the "More info" link in the SmartScreen popup window, and then click "Run anyway".
 - **Can I trust this?**  
   It is always wise to be skeptical when running any executable from an unknown source on your system.  
-  This application howver does nothing malicious, and can be trusted. Additionally it is developed open-source, meaning anyone can read the code of the application itself and validate what it does.
+  This application however does nothing malicious, and can be trusted. Additionally it is developed open-source, meaning anyone can read the code of the application itself and validate what it does.
 
   Some more (technical) details on the inner workings are also explained in this readme.    
 - **I want more time to dismiss the notification**
