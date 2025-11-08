@@ -1,4 +1,6 @@
 # Hell Let Loose Seeding Client
+[![Build Status](https://dev.azure.com/BobvanHooff/HellLetLooseSeedingClient/_apis/build/status%2FNanoBob.HellLetLooseSeedingClient?branchName=refs%2Ftags%2F0.1.1)](https://dev.azure.com/BobvanHooff/HellLetLooseSeedingClient/_build/latest?definitionId=19&branchName=refs%2Ftags%2F0.1.1)  
+
 Client to automatically start Hell Let Loose and connect to a server when seeding is requested.
 
 ## Requirements
