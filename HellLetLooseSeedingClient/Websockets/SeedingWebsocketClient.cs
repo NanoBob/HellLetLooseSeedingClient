@@ -3,6 +3,7 @@ using HellLetLooseSeedingClient.Notifications;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
+using System.Net;
 using System.Net.WebSockets;
 using System.Runtime.Versioning;
 using System.Text;
@@ -32,10 +33,14 @@ public class SeedingWebsocketClient(
         this.socket = new();
         await this.socket.ConnectAsync(new Uri(url), this.cancellationToken);
 
-        if (GameLauncher.IsGameRunning())
-            await SetRunning();
-        else
-            await SetReady();
+
+        if (this.state != SeedingState.Rejected)
+        {
+            if (GameLauncher.IsGameRunning())
+                await SetRunning();
+            else
+                await SetReady();
+        }
 
         _ = Task.Run(RelayGameStateAsync);
         await ReceiveLoop();
@@ -103,7 +108,12 @@ public class SeedingWebsocketClient(
                 await SetRunning();
 
             else if (state == SeedingState.Rejected && rejectUntilUtc < DateTime.UtcNow)
-                await SetRunning();
+            {
+                if (isGameRunning)
+                    await SetRunning();
+                else
+                    await SetReady();
+            }
 
             await Task.Delay(10000, cancellationToken);
         }
@@ -145,6 +155,13 @@ public class SeedingWebsocketClient(
     {
         if (state != SeedingState.Ready)
             return;
+
+        if (!IPAddress.TryParse(command.Ip, out var _))
+        {
+            logger.LogWarning("Invalid IP address in RequestSeedCommand: {Ip}, rejecting.", command.Ip);
+            await SetRejected(options.Value.RejectionDuration);
+            return;
+        }
 
         logger.LogInformation("RequestSeedCommand received: {Ip}:{Port}", command.Ip, command.Port);
 
