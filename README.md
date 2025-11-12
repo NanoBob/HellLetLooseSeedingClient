@@ -13,18 +13,27 @@ When seeding is requested you will receive a Windows notification allowing you t
 - Download the zip from the latest release here: https://github.com/NanoBob/HellLetLooseSeedingClient/releases/latest
 - Unzip the downloaded file
 - Run the .exe file from the unzipped directory
+- Enable auto-start either via the notification, or via the system tray, more info below.  
 
-### Admin permissions
-The first time you run it it will request to run as administrator. This is only done so that the application can register itself with the Windows Task Scheduler in order to start automatically when your PC starts.  
+### System tray
+When the application is running, there should be an icon for it in your Windows System Tray.  
+The system tray icon allows you to:
+- Enable auto-start (start automatically when Windows starts)
+- Disable auto-start
+- Exit the application
+
+### Autostart
+When you start the application with auto-start disabled it will prompt you via a toast notification to enable auto-start.  
+If you don't see this, ensure you are not in do-not-disturb mode.  
+
+Alternatively you can enable autostart with the system tray icon.
+
 
 ### Uninstall
-In order to stop using this:
-- Open Task Scheduler (search Task Scheduler in the start menu)
-- Click "Task Scheduler Library"
-- Right click "HellLetLooseSeedingClient"
-  - Click "End"
-- Right click "HellLetLooseSeedingClient"
-  - Click "Disable" or click "Delete"
+In order to stop using the application simply:
+- Disable auto-start via the system tray icon.
+- Exit the application via the system tray icon.
+- You can now delete the downloaded files if you wish.
 
 ### Troubleshooting
 - **I get a "Windows Protected your PC" screen**  
@@ -46,6 +55,8 @@ In order to stop using this:
   - Open the appsettings.json file in the unzipped folder
   - Change the `FirstClickDelay` and `SecondClickDelay` to be longer. (for example `00:00:25.0` for 25 seconds)
   - Restart your PC, or manually kill the `HellLetLooseSeedingClient` process through task manager, and restart it by running the downloaded .exe manually.
+- **My game started without first showing me a notification**
+  - Make sure your Windows Notifications aren't set to do-not-disturb.
 
 ## How it works
 The seeding client will register itself with a central server, and indicate its readiness to seed.  

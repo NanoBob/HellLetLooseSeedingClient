@@ -1,0 +1,18 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background console shape -->
+  <rect x="8" y="8" width="112" height="112" rx="16" ry="16" fill="black"/>
+
+  <!-- White rounded rectangle around HLL -->
+  <rect x="16" y="16" width="96" height="80" rx="8" ry="8" fill="white"/>
+  <rect x="24" y="24" width="80" height="64" rx="8" ry="8" fill="black"/>
+
+  <!-- HLL text inside the white box -->
+  <text x="52" y="40" dominant-baseline="middle" text-anchor="middle" font-size="24" fill="white" font-family="sans-serif">HLL</text>
+
+  <!-- Prompt symbol below -->
+  <text x="48" y="64" dominant-baseline="middle" text-anchor="middle" font-size="20" fill="white" font-family="monospace">&gt; _</text>
+
+  <!-- Bottom indicators -->
+  <circle cx="48" cy="104" r="4" fill="white"/>
+  <rect x="64" y="102" width="48" height="4" rx="2" ry="2" fill="white"/>
+</svg>

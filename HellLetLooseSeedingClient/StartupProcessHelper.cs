@@ -6,6 +6,9 @@ namespace HellLetLooseSeedingClient;
 
 public static class StartupProcessHelper
 {
+    public const string RegisterTaskArgument = "register-scheduled-task";
+    public const string RemoveTaskArgument = "remove-scheduled-task";
+
     public const string TaskName = "HellLetLooseSeedingClient";
     public const string Description = """
         Boots Hell Let Loose when seeding is requested.
@@ -20,10 +23,33 @@ public static class StartupProcessHelper
         return taskService.RootFolder.Tasks.Any(t => t.Name == TaskName && t.Definition.Actions.OfType<ExecAction>().Any(a => a.Path == exePath));
     }
 
-    public static async System.Threading.Tasks.Task SetupAutostartAsync()
+    /// <summary>
+    /// This method creates a task in the Windows task scheduler
+    /// This method will spawn a new admin process to do this
+    /// </summary>
+    /// <returns></returns>
+    public static async System.Threading.Tasks.Task RequestSetupAutostartAsync()
     {
-        await RelaunchAsAdminIfNeeded();
+        await LaunchAsAdmin(RegisterTaskArgument);
+    }
 
+    /// <summary>
+    /// This method removes the created task in the Windows task scheduler
+    /// This method will spawn a new admin process to do this
+    /// </summary>
+    /// <returns></returns>
+    public static async System.Threading.Tasks.Task RequestRemoveAutostartAsync()
+    {
+        await LaunchAsAdmin(RemoveTaskArgument);
+    }
+
+    /// <summary>
+    /// This method creates a task in the Windows task scheduler
+    /// This method throws when there is insufficient permissions
+    /// </summary>
+    /// <returns></returns>
+    public static void SetupAutostart()
+    {
         var exePath = Environment.ProcessPath;
 
         using var taskService = new TaskService();
@@ -38,36 +64,57 @@ public static class StartupProcessHelper
         taskService.RootFolder.RegisterTaskDefinition(TaskName, definition);
     }
 
-    public static async System.Threading.Tasks.Task RelaunchAsAdminIfNeeded()
+    /// <summary>
+    /// This method removes the created task in the Windows task scheduler
+    /// This method throws when there is insufficient permissions
+    /// </summary>
+    /// <returns></returns>
+    public static void RemoveAutostart()
     {
-        if (IsRunningAsAdministrator())
-            return;
+        using var taskService = new TaskService();
+        taskService.RootFolder.DeleteTask(TaskName, false);
+    }
 
+    public static async Task<bool> LaunchAsAdmin(string arguments = "")
+    {
         try
         {
             var exePath = Environment.ProcessPath ?? Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
             if (string.IsNullOrEmpty(exePath))
-                return;
+                throw new LaunchAsAdminFailedException("Unable to start as admin, executable path could not be determined.");
 
             var args = Environment.GetCommandLineArgs().Skip(1);
-            var argString = string.Join(' ', args.Select(QuoteArgument));
+            var argString = $"{arguments} {string.Join(' ', args.Select(QuoteArgument))}";
 
             var psi = new ProcessStartInfo(exePath, argString)
             {
                 UseShellExecute = true,
                 Verb = "runas",
-                WorkingDirectory = Path.GetDirectoryName(exePath)
+                WorkingDirectory = Path.GetDirectoryName(exePath),
             };
 
             var process = Process.Start(psi);
             await process!.WaitForExitAsync();
 
-            Environment.Exit(0);
+            return true;
         }
-        catch
+        catch (Exception e)
         {
-            return;
+            throw new LaunchAsAdminFailedException("Unable to start as admin.", e);
         }
+    }
+
+    public static async Task<bool> RelaunchAsAdminIfNeeded(bool exitAfterComplete = true)
+    {
+        if (IsRunningAsAdministrator())
+            return false;
+
+        var result = await LaunchAsAdmin();
+
+        if (exitAfterComplete)
+            Environment.Exit(0);
+
+        return result;
     }
 
     private static bool IsRunningAsAdministrator()
@@ -94,4 +141,8 @@ public static class StartupProcessHelper
 
         return arg;
     }
+}
+
+public class LaunchAsAdminFailedException(string message, Exception? innerException = null) : Exception(message, innerException)
+{
 }

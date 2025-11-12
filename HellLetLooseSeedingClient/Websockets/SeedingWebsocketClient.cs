@@ -1,8 +1,10 @@
 ﻿using HellLetLooseSeedingClient.Game;
+using HellLetLooseSeedingClient.InputListeners;
 using HellLetLooseSeedingClient.Notifications;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
+using System.Drawing.Text;
 using System.Net;
 using System.Net.WebSockets;
 using System.Runtime.Versioning;
@@ -15,7 +17,8 @@ namespace HellLetLooseSeedingClient.Websockets;
 public class SeedingWebsocketClient(
     GameLauncher launcher, 
     ILogger<SeedingWebsocketClient> logger, 
-    AppNotificationService notifications, 
+    AppNotificationService notifications,
+    BackgroundInputListener backgroundInputListener,
     IOptions<SeedingOptions> options)
 {
     private ClientWebSocket socket = new();
@@ -31,20 +34,27 @@ public class SeedingWebsocketClient(
         this.cancellationToken = cancellationToken ?? CancellationToken.None;
 
         this.socket = new();
-        await this.socket.ConnectAsync(new Uri(url), this.cancellationToken);
-
-        notifications.ShowInformationalToast("Seeding client", "Seeding client has connected.");
-
-        if (this.state != SeedingState.Rejected)
+        try
         {
-            if (GameLauncher.IsGameRunning())
-                await SetRunning();
-            else
-                await SetReady();
-        }
+            await this.socket.ConnectAsync(new Uri(url), this.cancellationToken);
 
-        _ = Task.Run(RelayGameStateAsync);
-        await ReceiveLoop();
+            notifications.ShowInformationalToast("Seeding client", "Seeding client has connected.");
+
+            if (this.state != SeedingState.Rejected)
+            {
+                if (GameLauncher.IsGameRunning())
+                    await SetRunning();
+                else
+                    await SetReady();
+            }
+
+            _ = Task.Run(RelayGameStateAsync);
+            await ReceiveLoop();
+        } finally
+        {
+            this.socket.Dispose();
+        }
+        notifications.ShowInformationalToast("Seeding client", "Seeding client has disconnected.");
     }
 
     public Task SetReady()
@@ -62,7 +72,7 @@ public class SeedingWebsocketClient(
 
     public Task SetRunning()
     {
-        this.state = SeedingState.Booting;
+        this.state = SeedingState.Running;
         return Send(new RunningCommand(nameof(RunningCommand), DateTime.UtcNow));
     }
 
@@ -90,7 +100,7 @@ public class SeedingWebsocketClient(
         var messageBuffer = Encoding.UTF8.GetBytes(message);
 
         var segment = new ArraySegment<byte>(messageBuffer);
-        return this.socket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
+        return this.socket.SendAsync(segment, WebSocketMessageType.Text, true, cancellationToken);
     }
 
     private async Task RelayGameStateAsync()
@@ -166,22 +176,46 @@ public class SeedingWebsocketClient(
 
         logger.LogInformation("RequestSeedCommand received: {Ip}:{Port}", command.Ip, command.Port);
 
+        var hasInputBeenReceived = false;
+        async void handleInput(object? sender, EventArgs e)
+        {
+            await backgroundInputListener.UnsubscribeAsync();
+            hasInputBeenReceived = true;
+        }
+
+        backgroundInputListener.Subscribe();
+        backgroundInputListener.InputReceived += handleInput;
+
         var approved = await notifications.RequestApprovalAsync(
             "Seed request",
             "Draft is requesting you to help seed. Will you join?",
+            "Start seeding",
+            "Decline",
             options.Value.NotificationDuration,
             cancellationToken);
 
-        if (!approved)
+        await backgroundInputListener.UnsubscribeAsync();
+        backgroundInputListener.InputReceived -= handleInput;
+
+        if (approved == ApprovalResult.Declined)
         {
             logger.LogInformation("User rejected seed request via toast.");
             await SetRejected(options.Value.RejectionDuration);
             return;
         }
 
+        if (approved == ApprovalResult.TimedOut && options.Value.RejectByAnyInput && hasInputBeenReceived)
+        {
+            logger.LogInformation("User rejected seed request via misc input.");
+            await SetRejected(options.Value.RejectionDuration);
+            return;
+        }
+
         await SetBooting();
-        await launcher.RunAndConnect(command.Ip, command.Port);
-        await SetRunning();
+        if (await launcher.RunAndConnect(command.Ip, command.Port))
+            await SetRunning();
+        else
+            await SetReady();
     }
 
     private async Task<string?> ReceiveMessageAsync(CancellationToken ct)

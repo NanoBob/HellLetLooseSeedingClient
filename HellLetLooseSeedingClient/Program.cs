@@ -1,6 +1,8 @@
 ﻿using HellLetLooseSeedingClient;
 using HellLetLooseSeedingClient.Game;
+using HellLetLooseSeedingClient.InputListeners;
 using HellLetLooseSeedingClient.Notifications;
+using HellLetLooseSeedingClient.Tray;
 using HellLetLooseSeedingClient.Websockets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +15,17 @@ if (!OperatingSystem.IsWindows())
     return 1;
 }
 
+if (args.Contains(StartupProcessHelper.RegisterTaskArgument))
+{
+    StartupProcessHelper.SetupAutostart();
+    return 0;
+}
+else if (args.Contains(StartupProcessHelper.RemoveTaskArgument))
+{
+    StartupProcessHelper.RemoveAutostart();
+    return 0;
+}
+
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Configuration
@@ -21,13 +34,6 @@ builder.Configuration
     .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true)
     .AddCommandLine(args)
     .AddEnvironmentVariables();
-
-#if RELEASE
-if (!StartupProcessHelper.IsAutostartSetUp())
-{
-    await StartupProcessHelper.SetupAutostartAsync();
-}
-#endif
 
 builder.Logging.AddDebug();
 builder.Services.AddLogging();
@@ -51,7 +57,12 @@ builder.Services
 
 builder.Services
     .Configure<WebsocketOptions>(builder.Configuration.GetSection("Websocket"))
-    .AddHostedService<WebsocketService>();
+    .AddHostedService<WebsocketHostedService>();
+
+builder.Services
+    .AddSingleton<BackgroundInputListener>();
+
+builder.Services.AddSingleton<SystemTrayService>();
 
 var host = builder.Build();
 
