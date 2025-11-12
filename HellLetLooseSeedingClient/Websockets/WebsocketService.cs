@@ -1,10 +1,11 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using HellLetLooseSeedingClient.Notifications;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace HellLetLooseSeedingClient.Websockets;
 
-public class WebsocketService(IOptions<WebsocketOptions> options, SeedingWebsocketClient client, ILogger<WebsocketService> logger) : IHostedService
+public class WebsocketService(IOptions<WebsocketOptions> options, SeedingWebsocketClient client, ILogger<WebsocketService> logger, AppNotificationService notificationService) : IHostedService
 {
     private bool isRunning = false;
 
@@ -12,6 +13,8 @@ public class WebsocketService(IOptions<WebsocketOptions> options, SeedingWebsock
     {
         if (isRunning)
             return;
+
+        notificationService.ShowInformationalToast("Seeding client", "Seeding client has started.");
 
         isRunning = true;
         _ = ConnectLoop(cancellationToken);

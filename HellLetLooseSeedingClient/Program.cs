@@ -41,7 +41,9 @@ builder.Services
     .Configure<LaunchOptions>(builder.Configuration.GetSection("launch"))
     .AddSingleton<GameLauncher>();
 
-builder.Services.AddSingleton<AppNotificationService>();
+builder.Services
+    .Configure<NotificationOptions>(builder.Configuration.GetSection("notifications"))
+    .AddSingleton<AppNotificationService>();
 
 builder.Services
     .Configure<SeedingOptions>(builder.Configuration.GetSection("seeding"))

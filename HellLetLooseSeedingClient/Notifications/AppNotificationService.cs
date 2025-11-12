@@ -1,16 +1,31 @@
+using Microsoft.Extensions.Options;
 using Microsoft.Toolkit.Uwp.Notifications;
 using System.Runtime.Versioning;
 
 namespace HellLetLooseSeedingClient.Notifications;
 
 [SupportedOSPlatform("windows")]
-public class AppNotificationService
+public class AppNotificationService(IOptions<NotificationOptions> options)
 {
     private const string actionArgumentName = "HellletLoose.Seeding.action";
     private const string approveActionArgumentValue = "HellletLoose.Seeding.approve";
     private const string rejectActionArgumentValue = "HellletLoose.Seeding.reject";
 
     private TaskCompletionSource<bool>? approvalCompletionSource;
+
+    public void ShowInformationalToast(string title, string message)
+    {
+        if (!options.Value.ShowInformationalNotifications)
+            return;
+
+        new ToastContentBuilder()
+            .AddText(title)
+            .AddText(message)
+            .AddAttributionText("Hell Let Loose Seeding Client")
+            .SetToastScenario(ToastScenario.Default)
+            .SetToastDuration(ToastDuration.Short)
+            .Show();
+    }
 
     public Task<bool> RequestApprovalAsync(string title, string message, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {

@@ -33,6 +33,7 @@ public class SeedingWebsocketClient(
         this.socket = new();
         await this.socket.ConnectAsync(new Uri(url), this.cancellationToken);
 
+        notifications.ShowInformationalToast("Seeding client", "Seeding client has connected.");
 
         if (this.state != SeedingState.Rejected)
         {
