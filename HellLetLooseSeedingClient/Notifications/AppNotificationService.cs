@@ -11,11 +11,11 @@ public class AppNotificationService
     private const string idArgumentName = "HellletLoose.Seeding.id";
     private const string actionArgumentName = "HellletLoose.Seeding.action";
 
-    private readonly IOptions<NotificationOptions> options;
+    private readonly IOptionsMonitor<NotificationOptions> options;
 
     private readonly ConcurrentDictionary<Guid, ApprovalNotification> pendingNotifications = new();
 
-    public AppNotificationService(IOptions<NotificationOptions> options)
+    public AppNotificationService(IOptionsMonitor<NotificationOptions> options)
     {
         this.options = options;
 
@@ -35,7 +35,7 @@ public class AppNotificationService
 
     public void ShowInformationalToast(string title, string message)
     {
-        if (!options.Value.ShowInformationalNotifications)
+        if (!options.CurrentValue.ShowInformationalNotifications)
             return;
 
         new ToastContentBuilder()

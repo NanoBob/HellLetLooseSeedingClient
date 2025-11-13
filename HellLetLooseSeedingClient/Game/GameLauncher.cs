@@ -8,7 +8,7 @@ using System.Runtime.Versioning;
 namespace HellLetLooseSeedingClient.Game;
 
 [SupportedOSPlatform("windows")]
-public class GameLauncher(ILogger<GameLauncher> logger, IOptions<LaunchOptions> options)
+public class GameLauncher(ILogger<GameLauncher> logger, IOptionsMonitor<LaunchOptions> options)
 {
     private const string hellLetLooseAppId = "686810";
 
@@ -74,13 +74,13 @@ public class GameLauncher(ILogger<GameLauncher> logger, IOptions<LaunchOptions> 
 
     private async Task RunHellLetLooseStartupSequence(Process process)
     {
-        await Task.Delay(options.Value.FirstClickDelay);
+        await Task.Delay(options.CurrentValue.FirstClickDelay);
         logger.LogInformation("Bringing to front + first enter");
 
         NativeHelper.BringToFront(process);
         NativeHelper.SendKeyPress(Keys.Enter);
 
-        await Task.Delay(options.Value.SecondClickDelay);
+        await Task.Delay(options.CurrentValue.SecondClickDelay);
         logger.LogInformation("Bringing to front + second enter");
         NativeHelper.BringToFront(process);
         NativeHelper.SendKeyPress(Keys.Enter);

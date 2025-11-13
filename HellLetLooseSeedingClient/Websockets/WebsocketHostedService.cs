@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace HellLetLooseSeedingClient.Websockets;
 
 public class WebsocketHostedService(
-    IOptions<WebsocketOptions> options, 
+    IOptionsMonitor<WebsocketOptions> options, 
     SeedingWebsocketClient client,
     AppNotificationService notificationService,
     SystemTrayService systemTrayService,
@@ -101,7 +101,7 @@ public class WebsocketHostedService(
             }
             catch (Exception ex)
             {
-                logger.LogWarning("Websocket connection to {url} failed: {Message}", options.Value.Url, ex.Message);
+                logger.LogWarning("Websocket connection to {url} failed: {Message}", options.CurrentValue.Url, ex.Message);
             }
             if (isRunning)
             {
@@ -112,6 +112,6 @@ public class WebsocketHostedService(
 
     private async Task TryConnectAsync(CancellationToken cancellationToken)
     {
-        await client.ConnectAsync(options.Value.Url, cancellationToken);
+        await client.ConnectAsync(options.CurrentValue.Url, cancellationToken);
     }
 }

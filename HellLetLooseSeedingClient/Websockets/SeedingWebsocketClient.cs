@@ -4,7 +4,6 @@ using HellLetLooseSeedingClient.Notifications;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
-using System.Drawing.Text;
 using System.Net;
 using System.Net.WebSockets;
 using System.Runtime.Versioning;
@@ -15,11 +14,11 @@ namespace HellLetLooseSeedingClient.Websockets;
 
 [SupportedOSPlatform("windows")]
 public class SeedingWebsocketClient(
-    GameLauncher launcher, 
-    ILogger<SeedingWebsocketClient> logger, 
+    GameLauncher launcher,
+    ILogger<SeedingWebsocketClient> logger,
     AppNotificationService notifications,
     BackgroundInputListener backgroundInputListener,
-    IOptions<SeedingOptions> options)
+    IOptionsMonitor<SeedingOptions> options)
 {
     private ClientWebSocket socket = new();
     private CancellationToken cancellationToken = CancellationToken.None;
@@ -50,7 +49,8 @@ public class SeedingWebsocketClient(
 
             _ = Task.Run(RelayGameStateAsync);
             await ReceiveLoop();
-        } finally
+        }
+        finally
         {
             this.socket.Dispose();
         }
@@ -170,7 +170,7 @@ public class SeedingWebsocketClient(
         if (!IPAddress.TryParse(command.Ip, out var _))
         {
             logger.LogWarning("Invalid IP address in RequestSeedCommand: {Ip}, rejecting.", command.Ip);
-            await SetRejected(options.Value.RejectionDuration);
+            await SetRejected(options.CurrentValue.RejectionDuration);
             return;
         }
 
@@ -191,7 +191,7 @@ public class SeedingWebsocketClient(
             "Draft is requesting you to help seed. Will you join?",
             "Start seeding",
             "Decline",
-            options.Value.NotificationDuration,
+            options.CurrentValue.NotificationDuration,
             cancellationToken);
 
         await backgroundInputListener.UnsubscribeAsync();
@@ -200,14 +200,14 @@ public class SeedingWebsocketClient(
         if (approved == ApprovalResult.Declined)
         {
             logger.LogInformation("User rejected seed request via toast.");
-            await SetRejected(options.Value.RejectionDuration);
+            await SetRejected(options.CurrentValue.RejectionDuration);
             return;
         }
 
-        if (approved == ApprovalResult.TimedOut && options.Value.RejectByAnyInput && hasInputBeenReceived)
+        if (approved == ApprovalResult.TimedOut && options.CurrentValue.RejectByAnyInput && hasInputBeenReceived)
         {
             logger.LogInformation("User rejected seed request via misc input.");
-            await SetRejected(options.Value.RejectionDuration);
+            await SetRejected(options.CurrentValue.RejectionDuration);
             return;
         }
 
