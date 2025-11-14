@@ -2,7 +2,7 @@
 
 public record BaseRemoteSeederCommand(string Type);
 
-public record RequestSeedCommand(string Type, string Ip, ushort Port) : BaseRemoteSeederCommand(Type);
+public record RequestSeedCommand(string Type, string Ip, ushort Port, string? Message = null) : BaseRemoteSeederCommand(Type);
 
 public record ReadyCommand(string Type, DateTime StartedAtUtc) : BaseRemoteSeederCommand(Type);
 public record RejectSeedCommand(string Type, DateTime RejectedAtUtc, DateTime RejectedUntilUtc) : BaseRemoteSeederCommand(Type);

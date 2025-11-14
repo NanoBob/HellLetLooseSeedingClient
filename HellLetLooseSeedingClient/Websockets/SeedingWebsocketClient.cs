@@ -188,7 +188,7 @@ public class SeedingWebsocketClient(
 
         var approved = await notifications.RequestApprovalAsync(
             "Seed request",
-            "Draft is requesting you to help seed. Will you join?",
+            $"{command.Message ?? "Draft is requesting you to help seed."} Will you join?",
             "Start seeding",
             "Decline",
             options.CurrentValue.NotificationDuration,

@@ -68,6 +68,10 @@ An example appsettings file can be found [here](https://github.com/NanoBob/HellL
 - **SecondClickDelay**: Time to wait before injecting the second click (to trigger server connection)
   - Format: Time span (e.g., `"00:00:12.5"` for 12.5 seconds)
   - Default: `"00:00:12.5"` (12.5 seconds)
+  
+- **SaveSystemResources**: This starts the game at a lower resolution and lower video settings to save power.  
+  - Values: `true` or `false`
+  - Default: `false`
 
 #### Notifications
 - **ShowInformationalNotifications**: Whether to show non-critical notifications
@@ -87,7 +91,8 @@ An example appsettings file can be found [here](https://github.com/NanoBob/HellL
   },
   "Launch": {
     "FirstClickDelay": "00:00:12.5",
-    "SecondClickDelay": "00:00:12.5"
+    "SecondClickDelay": "00:00:12.5",
+    "SaveSystemResources": true
   },
   "Notifications": {
     "ShowInformationalNotifications": true
