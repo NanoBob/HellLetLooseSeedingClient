@@ -1,9 +1,10 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace HellLetLooseSeedingClient.Tray;
 
-public class SystemTrayService
+public class SystemTrayService(ILogger<SystemTrayService> logger)
 {
     private const string trayIconText = "Hell Let Loose Seeding Client";
     private const string disableAutostartText = "Disable autostart";
@@ -46,6 +47,8 @@ public class SystemTrayService
     [STAThread]
     private void CreateAndRunTrayIcon()
     {
+        logger.LogInformation("Creating tray icon");
+
         var menu = new ContextMenuStrip();
 
         statusitem = new ToolStripLabel(disconnectedText);
@@ -91,19 +94,30 @@ public class SystemTrayService
         createSystemTrayIconCompletionSource?.SetResult();
 
         Application.Run(context);
+
+        logger.LogInformation("Tray icon created");
     }
 
     private void HandleSettingsClick(object? sender, EventArgs e)
     {
-        var path = "./appsettings.json";
-        var current = Assembly.GetEntryAssembly().Location;
-        var fullPath = Path.Combine(Path.GetDirectoryName(current) ?? string.Empty, path);
+        var path = "appsettings.json";
+        var current = Assembly.GetEntryAssembly()?.Location;
+        var directory = Path.GetDirectoryName(current ?? string.Empty) ?? ".";
+        var fullPath = Path.Combine(directory, path);
 
-        Process.Start(new ProcessStartInfo
+        logger.LogInformation("Attempting to open {path} in {directory}. Full path: {fullPath}", path, directory, fullPath);
+
+        try
         {
-            FileName = fullPath,
-            UseShellExecute = true
-        });
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = fullPath,
+                UseShellExecute = true
+            });
+        } catch (Exception exception)
+        {
+            logger.LogError(exception, "Failed to open settings file at {fullPath}", fullPath);
+        }
     }
 
     public void SetAutostartEnabled(bool enabled) => RunOnUiThread(() =>
