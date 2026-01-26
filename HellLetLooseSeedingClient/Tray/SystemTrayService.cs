@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 
 namespace HellLetLooseSeedingClient.Tray;
 
@@ -8,13 +9,19 @@ public class SystemTrayService
     private const string disableAutostartText = "Disable autostart";
     private const string enableAutostartText = "Enable autostart";
     private const string exitText = "Exit";
+    private const string settingsText = "Settings";
+
+    private const string connectedText = "🟢 Connected";
+    private const string disconnectedText = "❌ Disconnected";
 
     private const string iconEmbeddedResourcePath = "HellLetLooseSeedingClient.Assets.Icon.ico";
 
     private NotifyIcon? trayIcon;
+    private ToolStripItem? statusitem;
     private ToolStripMenuItem? enableItem;
     private ToolStripMenuItem? disableItem;
     private ToolStripMenuItem? exitItem;
+    private ToolStripMenuItem? settingsItem;
 
     private Thread? applicationThread;
     private ApplicationContext? context;
@@ -41,6 +48,11 @@ public class SystemTrayService
     {
         var menu = new ContextMenuStrip();
 
+        statusitem = new ToolStripLabel(disconnectedText);
+        menu.Items.Add(statusitem);
+
+        menu.Items.Add(new ToolStripSeparator());
+
         enableItem = new ToolStripMenuItem(enableAutostartText);
         enableItem.Click += HandleEnableClick;
         menu.Items.Add(enableItem);
@@ -48,6 +60,12 @@ public class SystemTrayService
         disableItem = new ToolStripMenuItem(disableAutostartText);
         disableItem.Click += HandleDisableClick;
         menu.Items.Add(disableItem);
+
+        settingsItem = new ToolStripMenuItem(settingsText);
+        settingsItem.Click += HandleSettingsClick;
+        menu.Items.Add(settingsItem);
+
+        menu.Items.Add(new ToolStripSeparator());
 
         exitItem = new ToolStripMenuItem(exitText);
         exitItem.Click += HandleExitClick;
@@ -75,6 +93,19 @@ public class SystemTrayService
         Application.Run(context);
     }
 
+    private void HandleSettingsClick(object? sender, EventArgs e)
+    {
+        var path = "./appsettings.json";
+        var current = Assembly.GetEntryAssembly().Location;
+        var fullPath = Path.Combine(Path.GetDirectoryName(current) ?? string.Empty, path);
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = fullPath,
+            UseShellExecute = true
+        });
+    }
+
     public void SetAutostartEnabled(bool enabled) => RunOnUiThread(() =>
     {
         disableItem?.Enabled = enabled;
@@ -82,6 +113,16 @@ public class SystemTrayService
     });
 
     public void DestroySystemTrayIcon() => RunOnUiThread(InnerDestroyTrayIcon);
+
+    public void SetConnectedStatus(bool connected) => RunOnUiThread(() =>
+    {
+        if (statusitem == null)
+            return;
+
+        statusitem.Text = connected ? connectedText : disconnectedText;
+
+        statusitem.ForeColor = connected ? Color.Green : Color.Red;
+    });
 
     private void InnerDestroyTrayIcon()
     {

@@ -1,6 +1,7 @@
 ﻿using HellLetLooseSeedingClient.Game;
 using HellLetLooseSeedingClient.InputListeners;
 using HellLetLooseSeedingClient.Notifications;
+using HellLetLooseSeedingClient.Tray;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
@@ -18,6 +19,7 @@ public class SeedingWebsocketClient(
     ILogger<SeedingWebsocketClient> logger,
     AppNotificationService notifications,
     BackgroundInputListener backgroundInputListener,
+    SystemTrayService systemTrayService,
     IOptionsMonitor<SeedingOptions> options)
 {
     private ClientWebSocket socket = new();
@@ -35,8 +37,11 @@ public class SeedingWebsocketClient(
         this.socket = new();
         try
         {
+            logger.LogInformation("Attempting to connect to {url}", url);
             await this.socket.ConnectAsync(new Uri(url), this.cancellationToken);
+            systemTrayService.SetConnectedStatus(true);
 
+            logger.LogInformation("Connected to {url}", url);
             notifications.ShowInformationalToast("Seeding client", "Seeding client has connected.");
 
             if (this.state != SeedingState.Rejected)
@@ -52,6 +57,7 @@ public class SeedingWebsocketClient(
         }
         finally
         {
+            systemTrayService.SetConnectedStatus(false);
             this.socket.Dispose();
         }
         notifications.ShowInformationalToast("Seeding client", "Seeding client has disconnected.");
@@ -93,6 +99,7 @@ public class SeedingWebsocketClient(
 
         if (this.socket is null || this.socket.State != WebSocketState.Open)
         {
+            logger.LogWarning("Failed to send command, websocket is not connected");
             throw new InvalidOperationException("WebSocket is not connected.");
         }
 
@@ -164,6 +171,8 @@ public class SeedingWebsocketClient(
 
     private async Task HandleRequestSeedCommand(RequestSeedCommand command)
     {
+        logger.LogInformation("RequestSeedCommand received: {Ip}:{Port}", command.Ip, command.Port);
+
         if (state != SeedingState.Ready)
             return;
 
@@ -174,7 +183,6 @@ public class SeedingWebsocketClient(
             return;
         }
 
-        logger.LogInformation("RequestSeedCommand received: {Ip}:{Port}", command.Ip, command.Port);
 
         var hasInputBeenReceived = false;
         async void handleInput(object? sender, EventArgs e)
@@ -186,6 +194,7 @@ public class SeedingWebsocketClient(
         backgroundInputListener.Subscribe();
         backgroundInputListener.InputReceived += handleInput;
 
+        logger.LogInformation("Requesting approval");
         var approved = await notifications.RequestApprovalAsync(
             "Seed request",
             $"{command.Message ?? "Draft is requesting you to help seed."} Will you join?",
@@ -211,6 +220,7 @@ public class SeedingWebsocketClient(
             return;
         }
 
+        logger.LogInformation("Booting game");
         await SetBooting();
         if (await launcher.RunAndConnect(command.Ip, command.Port))
             await SetRunning();

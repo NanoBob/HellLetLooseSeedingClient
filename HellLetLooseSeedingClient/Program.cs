@@ -4,10 +4,12 @@ using HellLetLooseSeedingClient.InputListeners;
 using HellLetLooseSeedingClient.Notifications;
 using HellLetLooseSeedingClient.Tray;
 using HellLetLooseSeedingClient.Websockets;
+//using Karambolo.Extensions.Logging.File;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 if (!OperatingSystem.IsWindows())
 {
@@ -35,6 +37,19 @@ builder.Configuration
     .AddCommandLine(args)
     .AddEnvironmentVariables();
 
+
+var logger = new LoggerConfiguration()
+    .WriteTo.File(
+        "logs/log.log", 
+        Serilog.Events.LogEventLevel.Information, 
+        rollingInterval: RollingInterval.Day, 
+        fileSizeLimitBytes: 5 * 1024 * 1024, 
+        retainedFileCountLimit: 7, 
+        rollOnFileSizeLimit: true
+    )
+    .CreateLogger();
+
+builder.Logging.AddSerilog(logger);
 builder.Logging.AddDebug();
 builder.Services.AddLogging();
 
@@ -66,6 +81,13 @@ builder.Services.AddSingleton<SystemTrayService>();
 
 var host = builder.Build();
 
-await host.RunAsync();
+try
+{
+    await host.RunAsync();
+} catch (Exception e)
+{
+    var exceptionLogger = host.Services.GetRequiredService<ILogger<Program>>();
+    exceptionLogger.LogCritical(e, "{Message}\n{StackTrace}", e.Message, e.StackTrace);
+}
 
 return 0;
